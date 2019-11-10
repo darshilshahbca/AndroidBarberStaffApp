@@ -1,24 +1,39 @@
 package com.example.androidbarberstaffapp.Adapter;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.androidbarberstaffapp.Common.Common;
+import com.example.androidbarberstaffapp.Common.CustomLoginDialog;
+import com.example.androidbarberstaffapp.Interface.IDialogClickListner;
 import com.example.androidbarberstaffapp.Interface.IRecyclerItemSelectedListener;
 import com.example.androidbarberstaffapp.Model.Salon;
 import com.example.androidbarberstaffapp.R;
+import com.example.androidbarberstaffapp.StaffHomeActivity;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class MySalonAdapter extends RecyclerView.Adapter<MySalonAdapter.MyViewHolder> {
+import dmax.dialog.SpotsDialog;
+
+public class MySalonAdapter extends RecyclerView.Adapter<MySalonAdapter.MyViewHolder> implements IDialogClickListner {
 
     Context context;
     List<Salon> salonList;
@@ -53,21 +68,80 @@ public class MySalonAdapter extends RecyclerView.Adapter<MySalonAdapter.MyViewHo
             myViewHolder.setiRecyclerItemSelectedListener(new IRecyclerItemSelectedListener() {
                 @Override
                 public void onItemSelected(View view, int position) {
-                    //Set White Background for all card which are not selected
-                    for(CardView cardView : cardViewList)
-                        cardView.setCardBackgroundColor(context.getResources().getColor(android.R.color.white));
+                    Common.selectedSalon = salonList.get(position);
 
-                    //Set Background for selected item
-                    myViewHolder.card_salon.setCardBackgroundColor(context.getResources()
-                            .getColor(android.R.color.holo_orange_dark));
+                    showLoginDialog();
+
                 }
             });
 
     }
 
+    private void showLoginDialog() {
+        CustomLoginDialog.getInstance()
+                .showLoginDialog("STAFF LOGIN", "Login", "Cancel",
+                        context, this);
+    }
+
     @Override
     public int getItemCount() {
         return salonList.size();
+    }
+
+    @Override
+    public void onClickPositiveButton(DialogInterface dialogInterface, String userName, String password) {
+        AlertDialog loading = new SpotsDialog.Builder().setCancelable(false).setContext(context).build();
+
+        loading.show();
+
+     //   /AllSalon/Ahmedabad/Branch/mbiHaUQCwTozKQG4lfw4/Barbers/axxgShwbwdJ9xNrX3z6Y
+        FirebaseFirestore.getInstance()
+                .collection("AllSalon")
+                .document(Common.state_name)
+                .collection("Branch")
+                .document(Common.selectedSalon.getSalonId())
+                .collection("Barbers")
+                 .whereEqualTo("username", userName)
+                .whereEqualTo("password", password)
+                .limit(1)
+                .get()
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(context, e.getMessage(), Toast.LENGTH_SHORT).show();
+                        loading.dismiss();
+                    }
+                })
+                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                        if(task.isSuccessful())
+                        {
+                            if(task.getResult().size() > 0)
+                            {
+                                dialogInterface.dismiss();
+                                loading.dismiss();
+                                //We will navigate Staff Home and clear all previous activity
+                                Intent staffHome = new Intent(context, StaffHomeActivity.class);
+                                staffHome.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                staffHome.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                context.startActivity(staffHome);
+
+                            }else{
+                                loading.dismiss();
+                                Toast.makeText(context,"Wrong userName/password or Wrong salon",
+                                        Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    }
+                });
+
+
+    }
+
+    @Override
+    public void onClickNegativeButton(DialogInterface dialogInterface) {
+        dialogInterface.dismiss();
     }
 
 
