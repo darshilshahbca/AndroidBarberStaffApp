@@ -14,7 +14,10 @@ import com.example.androidbarberstaffapp.Adapter.MySalonAdapter;
 import com.example.androidbarberstaffapp.Common.Common;
 import com.example.androidbarberstaffapp.Common.SpacesItemDecoration;
 import com.example.androidbarberstaffapp.Interface.IBranchLoadListener;
+import com.example.androidbarberstaffapp.Interface.IGetBarberListener;
 import com.example.androidbarberstaffapp.Interface.IOnLoadCountSalon;
+import com.example.androidbarberstaffapp.Interface.IUserLoginRememberListener;
+import com.example.androidbarberstaffapp.Model.Barber;
 import com.example.androidbarberstaffapp.Model.Salon;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -22,6 +25,7 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.gson.Gson;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,8 +33,9 @@ import java.util.List;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import dmax.dialog.SpotsDialog;
+import io.paperdb.Paper;
 
-public class SalonListActivity extends AppCompatActivity implements IOnLoadCountSalon, IBranchLoadListener {
+public class SalonListActivity extends AppCompatActivity implements IOnLoadCountSalon, IBranchLoadListener, IGetBarberListener, IUserLoginRememberListener {
 
     @BindView(R.id.txt_salon_count)
     TextView txt_salon_count;
@@ -116,7 +121,7 @@ public class SalonListActivity extends AppCompatActivity implements IOnLoadCount
 
     @Override
     public void onBranchLoadSuccess(List<Salon> branchList) {
-        MySalonAdapter salonAdapter = new MySalonAdapter(this, branchList);
+        MySalonAdapter salonAdapter = new MySalonAdapter(this, branchList, this, this);
         recycler_salon.setAdapter(salonAdapter);
 
         dialog.dismiss();
@@ -126,5 +131,21 @@ public class SalonListActivity extends AppCompatActivity implements IOnLoadCount
     public void onBranchLoadFailed(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
         dialog.dismiss();
+    }
+
+    @Override
+    public void onGetBarberSuccess(Barber barber) {
+        Common.currentBarber = barber;
+        Paper.book().write(Common.BARBER_KEY, new Gson().toJson(barber));
+    }
+
+    @Override
+    public void onUserLoginSuccess(String user) {
+        //Save User
+        Paper.init(this);
+        Paper.book().write(Common.LOGGED_KEY, user);
+        Paper.book().write(Common.STATE_KEY, Common.state_name);
+        Paper.book().write(Common.SALON_KEY, new Gson().toJson(Common.selectedSalon));
+
     }
 }

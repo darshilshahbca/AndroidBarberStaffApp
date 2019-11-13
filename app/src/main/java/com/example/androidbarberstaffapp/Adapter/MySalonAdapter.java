@@ -18,13 +18,17 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.androidbarberstaffapp.Common.Common;
 import com.example.androidbarberstaffapp.Common.CustomLoginDialog;
 import com.example.androidbarberstaffapp.Interface.IDialogClickListner;
+import com.example.androidbarberstaffapp.Interface.IGetBarberListener;
 import com.example.androidbarberstaffapp.Interface.IRecyclerItemSelectedListener;
+import com.example.androidbarberstaffapp.Interface.IUserLoginRememberListener;
+import com.example.androidbarberstaffapp.Model.Barber;
 import com.example.androidbarberstaffapp.Model.Salon;
 import com.example.androidbarberstaffapp.R;
 import com.example.androidbarberstaffapp.StaffHomeActivity;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
 
@@ -37,15 +41,18 @@ public class MySalonAdapter extends RecyclerView.Adapter<MySalonAdapter.MyViewHo
 
     Context context;
     List<Salon> salonList;
-    List<CardView> cardViewList;
-    LocalBroadcastManager localBroadcastManager;
+    List<CardView> itemViewList;
+
+    IUserLoginRememberListener iUserLoginRememberListener;
+    IGetBarberListener iGetBarberListener;
 
 
-    public MySalonAdapter(Context context, List<Salon> salonList) {
+    public MySalonAdapter(Context context, List<Salon> salonList, IUserLoginRememberListener iUserLoginRememberListener, IGetBarberListener iGetBarberListener) {
         this.context = context;
         this.salonList = salonList;
-        cardViewList = new ArrayList<>();
-        localBroadcastManager =LocalBroadcastManager.getInstance(context);
+        itemViewList = new ArrayList<>();
+        this.iGetBarberListener = iGetBarberListener;
+        this.iUserLoginRememberListener = iUserLoginRememberListener;
     }
 
     @NonNull
@@ -62,8 +69,8 @@ public class MySalonAdapter extends RecyclerView.Adapter<MySalonAdapter.MyViewHo
         myViewHolder.txt_salon_name.setText(salonList.get(i).getName());
         myViewHolder.txt_salon_address.setText(salonList.get(i).getAddress());
 
-        if(!cardViewList.contains(myViewHolder.card_salon))
-            cardViewList.add(myViewHolder.card_salon);
+        if(!itemViewList.contains(myViewHolder.card_salon))
+            itemViewList.add(myViewHolder.card_salon);
 
             myViewHolder.setiRecyclerItemSelectedListener(new IRecyclerItemSelectedListener() {
                 @Override
@@ -121,6 +128,20 @@ public class MySalonAdapter extends RecyclerView.Adapter<MySalonAdapter.MyViewHo
                             {
                                 dialogInterface.dismiss();
                                 loading.dismiss();
+
+                                iUserLoginRememberListener.onUserLoginSuccess(userName);
+
+                                //Create Barber
+                                Barber barber = new Barber();
+                                for(DocumentSnapshot barberSnapshot : task.getResult())
+                                {
+                                    barber = barberSnapshot.toObject(Barber.class);
+                                    barber.setBarberId(barberSnapshot.getId());
+                                }
+
+                                iGetBarberListener.onGetBarberSuccess(barber);
+
+
                                 //We will navigate Staff Home and clear all previous activity
                                 Intent staffHome = new Intent(context, StaffHomeActivity.class);
                                 staffHome.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
