@@ -4,10 +4,25 @@ import com.example.androidbarberstaffapp.Common.Common;
 
 public class MyToken {
 
-    private String token, user;
+    private  String userPhone;
+    private String token;
     private Common.TOKEN_TYPE tokenType;
 
     public MyToken() {
+    }
+
+    public MyToken(String userPhone, String token, Common.TOKEN_TYPE tokenType) {
+        this.userPhone = userPhone;
+        this.token = token;
+        this.tokenType = tokenType;
+    }
+
+    public String getUserPhone() {
+        return userPhone;
+    }
+
+    public void setUserPhone(String userPhone) {
+        this.userPhone = userPhone;
     }
 
     public String getToken() {
@@ -16,14 +31,6 @@ public class MyToken {
 
     public void setToken(String token) {
         this.token = token;
-    }
-
-    public String getUser() {
-        return user;
-    }
-
-    public void setUser(String user) {
-        this.user = user;
     }
 
     public Common.TOKEN_TYPE getTokenType() {

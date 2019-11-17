@@ -9,14 +9,13 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <service
-            android:name=".Service.MyFCMService"
-         >
+        <activity android:name=".DoneServiceActivity"></activity>
+        <activity android:name=".NotificationActivity" />
+
+        <service android:name=".Service.MyFCMService">
             <intent-filter>
-                <action android:name="com.google.firebase.MESSAGING_EVENT"/>
-
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
-
         </service>
 
         <activity android:name=".StaffHomeActivity" />

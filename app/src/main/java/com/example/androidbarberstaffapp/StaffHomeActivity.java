@@ -158,6 +158,15 @@ public class StaffHomeActivity extends AppCompatActivity implements ITimeSlotLoa
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if(actionBarDrawerToggle.onOptionsItemSelected(item))
             return true;
+
+        if(item.getItemId() == R.id.action_new_notification)
+        {
+            startActivity(new Intent(StaffHomeActivity.this, NotificationActivity.class));
+            txt_notification_badge.setText("");
+
+            return true;
+        }
+
         return super.onOptionsItemSelected(item);
     }
 

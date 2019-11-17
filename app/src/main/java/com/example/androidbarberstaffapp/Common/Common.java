@@ -38,6 +38,7 @@ public class Common {
     public static final String BARBER_KEY = "BARBER";
     public static final String TITLE_KEY = "title";
     public static final String CONTENT_KEY = "content";
+    public static final int MAX_NOTIFICATION_PER_LOAD = 10;
 
     public static String state_name = "";
     public static Salon selectedSalon;
@@ -153,7 +154,7 @@ public class Common {
                 MyToken myToken = new MyToken();
                 myToken.setToken(token);
                 myToken.setTokenType(TOKEN_TYPE.BARBER);
-                myToken.setUser(user);
+                myToken.setUserPhone(user);
 
                 //Submit on FireStore
                 FirebaseFirestore.getInstance()

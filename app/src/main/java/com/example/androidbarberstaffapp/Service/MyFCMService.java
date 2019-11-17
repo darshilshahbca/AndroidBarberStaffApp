@@ -13,7 +13,7 @@ import java.util.Random;
 public class MyFCMService extends FirebaseMessagingService {
 
     @Override
-    public void onNewToken(String token) {
+        public void onNewToken(String token) {
         super.onNewToken(token);
 
         Common.updateToken(this, token);
