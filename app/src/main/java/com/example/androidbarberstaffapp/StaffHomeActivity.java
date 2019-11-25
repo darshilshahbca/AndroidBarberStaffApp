@@ -24,6 +24,7 @@ import com.example.androidbarberstaffapp.Common.Common;
 import com.example.androidbarberstaffapp.Common.SpacesItemDecoration;
 import com.example.androidbarberstaffapp.Interface.INotificationCountListener;
 import com.example.androidbarberstaffapp.Interface.ITimeSlotLoadListener;
+import com.example.androidbarberstaffapp.Model.BookingInformation;
 import com.example.androidbarberstaffapp.Model.TimeSlot;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -305,10 +306,10 @@ public class StaffHomeActivity extends AppCompatActivity implements ITimeSlotLoa
                                         iTimeSlotLoadListener.onTimeSlotLoadEmpty();
                                     else {
                                         //IF have appointment
-                                        List<TimeSlot> timeSlots = new ArrayList<>();
+                                        List<BookingInformation> timeSlots = new ArrayList<>();
                                         for(QueryDocumentSnapshot document: task.getResult())
                                         {
-                                            timeSlots.add(document.toObject(TimeSlot.class));
+                                            timeSlots.add(document.toObject(BookingInformation.class));
                                         }
 
                                         iTimeSlotLoadListener.onTimeSlotLoadSuccess(timeSlots);
@@ -386,7 +387,7 @@ public class StaffHomeActivity extends AppCompatActivity implements ITimeSlotLoa
     }
 
     @Override
-    public void onTimeSlotLoadSuccess(List<TimeSlot> timeSlotList) {
+    public void onTimeSlotLoadSuccess(List<BookingInformation> timeSlotList) {
         MyTimeSlotAdapter adapter = new MyTimeSlotAdapter(this, timeSlotList);
         recycler_time_slot.setAdapter(adapter);
         alertDialog.dismiss();

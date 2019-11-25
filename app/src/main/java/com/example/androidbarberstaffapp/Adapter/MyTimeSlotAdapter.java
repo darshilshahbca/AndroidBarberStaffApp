@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.cardview.widget.CardView;
@@ -13,9 +14,16 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.androidbarberstaffapp.Common.Common;
+import com.example.androidbarberstaffapp.DoneServiceActivity;
 import com.example.androidbarberstaffapp.Interface.IRecyclerItemSelectedListener;
+import com.example.androidbarberstaffapp.Model.BookingInformation;
 import com.example.androidbarberstaffapp.Model.TimeSlot;
 import com.example.androidbarberstaffapp.R;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +31,7 @@ import java.util.List;
 public class MyTimeSlotAdapter extends RecyclerView.Adapter<MyTimeSlotAdapter.MyViewHolder> {
 
     Context context;
-    List<TimeSlot> timeSlotList;
+    List<BookingInformation> timeSlotList;
     List<CardView> cardViewList;
 
     public MyTimeSlotAdapter(Context context) {
@@ -32,7 +40,7 @@ public class MyTimeSlotAdapter extends RecyclerView.Adapter<MyTimeSlotAdapter.My
         cardViewList =  new ArrayList<>();
     }
 
-    public MyTimeSlotAdapter(Context context, List<TimeSlot> timeSlotList) {
+    public MyTimeSlotAdapter(Context context, List<BookingInformation> timeSlotList) {
         this.context = context;
         this.timeSlotList = timeSlotList;
         cardViewList =  new ArrayList<>();
@@ -56,24 +64,79 @@ public class MyTimeSlotAdapter extends RecyclerView.Adapter<MyTimeSlotAdapter.My
             myViewHolder.txt_time_slot_description.setTextColor(context.getResources().getColor(android.R.color.black));
             myViewHolder.txt_time_slot.setTextColor(context.getResources().getColor(android.R.color.black));
 
+            myViewHolder.setiRecyclerItemSelectedListener(new IRecyclerItemSelectedListener() {
+                @Override
+                public void onItemSelected(View view, int position) {
+
+                }
+            });
+
         }
         else //If have position is FULL(Booked)
         {
-            for(TimeSlot slotValue: timeSlotList)
+            for(BookingInformation slotValue: timeSlotList)
             {
                 //LOOP All time from Server and Set Different color
-                int slot = Integer.parseInt(slotValue.getSlot().toString());
+                int slot = Integer.parseInt(String.valueOf(slotValue.getSlot())) ;//.toString());
                 if(slot == i)
                 {
                     //We will set tag for all time slot is full
                     //So, Base on TAG, We can set all remain card background without change full time slot
                     myViewHolder.card_time_slot.setTag(Common.DISABLE_TAG);
                     myViewHolder.card_time_slot.setCardBackgroundColor(context.getResources().getColor(android.R.color.darker_gray));
-
                     myViewHolder.txt_time_slot_description.setText("Full");
                     myViewHolder.txt_time_slot_description.setTextColor(context.getResources().getColor(android.R.color.white));
                     myViewHolder.txt_time_slot.setTextColor(context.getResources().getColor(android.R.color.white));
-                }
+
+                    myViewHolder.setiRecyclerItemSelectedListener(new IRecyclerItemSelectedListener() {
+                        @Override
+                        public void onItemSelected(View view, int position) {
+                            //Only add for Gray Time Slot
+                            //Here we will get Booking Information and Store in Common.currentBookingInformation
+                            //After that Start DoneService Activity
+                            FirebaseFirestore.getInstance()
+                                    .collection("AllSalon")
+                                    .document(Common.state_name)
+                                    .collection("Branch")
+                                    .document(Common.selectedSalon.getSalonId())
+                                    .collection("Barbers")
+                                    .document(Common.currentBarber.getBarberId())
+                                    .collection(Common.simpleDateFormat.format(Common.bookingDate.getTime()))
+                                    .document(String.valueOf(slotValue.getSlot()))
+                                    .get()
+                                    .addOnFailureListener(new OnFailureListener() {
+                                        @Override
+                                        public void onFailure(@NonNull Exception e) {
+                                            Toast.makeText(context, e.getMessage(), Toast.LENGTH_SHORT).show();
+                                        }
+                                    }).addOnCompleteListener(new OnCompleteListener<DocumentSnapshot>() {
+                                @Override
+                                public void onComplete(@NonNull Task<DocumentSnapshot> task) {
+                                    if(task.isSuccessful())
+                                    {
+                                        if(task.getResult().exists())
+                                        {
+                                            Common.currentBookingInformation = task.getResult().toObject(BookingInformation.class);
+                                            context.startActivity(new Intent(context, DoneServiceActivity.class));
+
+                                        }
+                                    }
+                                }
+                            });
+
+
+
+                        }
+                    });
+                } /*else{
+                    //Fix Crash
+                    myViewHolder.setiRecyclerItemSelectedListener(new IRecyclerItemSelectedListener() {
+                        @Override
+                        public void onItemSelected(View view, int position) {
+
+                        }
+                    });
+                }*/
             }
         }
         //Add all card to list (20 Card because we are having 20 slots)
@@ -83,18 +146,6 @@ public class MyTimeSlotAdapter extends RecyclerView.Adapter<MyTimeSlotAdapter.My
 
         //Check if card time slot is available
 
-        myViewHolder.setiRecyclerItemSelectedListener(new IRecyclerItemSelectedListener() {
-            @Override
-            public void onItemSelected(View view, int position) {
-                //Loop all Card in Card List
-                for(CardView cardView : cardViewList)
-                {
-                    if(cardView.getTag() == null) //Only available Card time slot be change
-                        cardView.setCardBackgroundColor(context.getResources().getColor(android.R.color.white));
-                }
-
-            }
-        });
     }
 
 

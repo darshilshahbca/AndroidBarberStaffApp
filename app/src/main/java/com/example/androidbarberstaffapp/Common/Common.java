@@ -13,6 +13,7 @@ import android.text.TextUtils;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 
+import com.example.androidbarberstaffapp.Model.BookingInformation;
 import com.example.androidbarberstaffapp.Model.MyToken;
 import com.example.androidbarberstaffapp.Model.Salon;
 import com.example.androidbarberstaffapp.Model.Barber;
@@ -45,6 +46,7 @@ public class Common {
     public static Barber currentBarber;
     public static SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd_MM_yyyy");
     public static Calendar bookingDate=Calendar.getInstance();
+    public static BookingInformation currentBookingInformation;
 
     public static String convertTimeSlotToString(int slot) {
         switch (slot)
