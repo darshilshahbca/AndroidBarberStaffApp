@@ -30,6 +30,8 @@ dependencies {
     implementation 'com.google.firebase:firebase-firestore:21.2.1'
     implementation 'com.github.d-max:spots-dialog:1.1@aar'
     implementation 'com.google.firebase:firebase-messaging:17.3.4'
+    implementation 'com.google.firebase:firebase-storage:19.1.0'
+    implementation 'com.google.firebase:firebase-auth:19.2.0'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'androidx.test.ext:junit:1.1.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
@@ -45,6 +47,7 @@ dependencies {
     implementation 'com.squareup.retrofit2:converter-gson:2.4.0'
     implementation 'io.reactivex.rxjava3:rxjava:3.0.0-RC4'
     implementation 'com.squareup.picasso:picasso:2.71828'
+    implementation 'com.karumi:dexter:5.0.0'
 
 
 }
