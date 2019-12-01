@@ -44,6 +44,10 @@ public class Common {
     public static final String TITLE_KEY = "title";
     public static final String CONTENT_KEY = "content";
     public static final int MAX_NOTIFICATION_PER_LOAD = 10;
+    public static final String SERVICES_ADDED = "SERVICES_ADDED" ;
+    public static final double DEFAULT_PRICE = 30; //Default without No Service
+    public static final String MONEY_SIGN = "$";
+    public static final String SHOPPING_LIST = "SHOPPING_LIST_ITEMS" ;
 
     public static String state_name = "";
     public static Salon selectedSalon;
