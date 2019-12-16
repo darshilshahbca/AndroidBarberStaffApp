@@ -7,7 +7,7 @@ public class Invoice {
     private String barberId, barberName;
     private String customerName, customerPhone;
     private String imageUrl;
-    private List<ShoppingItem> shoppingItemList;
+    private List<CartItem> shoppingItemList;
     private List<BarberServices> barberServices;
     private double finalPrice;
 
@@ -79,11 +79,11 @@ public class Invoice {
         this.imageUrl = imageUrl;
     }
 
-    public List<ShoppingItem> getShoppingItemList() {
+    public List<CartItem> getShoppingItemList() {
         return shoppingItemList;
     }
 
-    public void setShoppingItemList(List<ShoppingItem> shoppingItemList) {
+    public void setShoppingItemList(List<CartItem> shoppingItemList) {
         this.shoppingItemList = shoppingItemList;
     }
 

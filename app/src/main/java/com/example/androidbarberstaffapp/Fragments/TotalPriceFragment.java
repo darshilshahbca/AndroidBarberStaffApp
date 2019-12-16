@@ -16,13 +16,13 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.androidbarberstaffapp.Adapter.MyConfirmationShoppingItemAdapter;
 import com.example.androidbarberstaffapp.Common.Common;
-import com.example.androidbarberstaffapp.Interface.IBottomSheetDialogOnDismissListener;
 import com.example.androidbarberstaffapp.Model.BarberServices;
+import com.example.androidbarberstaffapp.Model.CartItem;
+import com.example.androidbarberstaffapp.Model.EventBus.DismissFromBottomSheetEvent;
 import com.example.androidbarberstaffapp.Model.FCMResponse;
 import com.example.androidbarberstaffapp.Model.FCMSendData;
 import com.example.androidbarberstaffapp.Model.Invoice;
 import com.example.androidbarberstaffapp.Model.MyToken;
-import com.example.androidbarberstaffapp.Model.ShoppingItem;
 import com.example.androidbarberstaffapp.R;
 import com.example.androidbarberstaffapp.Retrofit.IFCMService;
 import com.example.androidbarberstaffapp.Retrofit.RetrofitClient;
@@ -40,12 +40,11 @@ import com.google.firebase.firestore.QuerySnapshot;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import org.w3c.dom.Text;
+import org.greenrobot.eventbus.EventBus;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 
 import butterknife.BindView;
@@ -54,7 +53,6 @@ import butterknife.Unbinder;
 import dmax.dialog.SpotsDialog;
 import io.reactivex.functions.Consumer;
 import io.reactivex.schedulers.Schedulers;
-import retrofit2.Retrofit;
 
 public class TotalPriceFragment extends BottomSheetDialogFragment {
     Unbinder unbinder;
@@ -87,10 +85,10 @@ public class TotalPriceFragment extends BottomSheetDialogFragment {
      Button btn_confirm;
 
      HashSet<BarberServices> servicesAdded;
-     List<ShoppingItem> shoppingItemList;
+//     List<ShoppingItem> shoppingItemList;
 
      IFCMService ifcmService;
-     IBottomSheetDialogOnDismissListener iBottomSheetDialogOnDismissListener;
+//     IBottomSheetDialogOnDismissListener iBottomSheetDialogOnDismissListener;
 
      AlertDialog dialog;
 
@@ -98,12 +96,12 @@ public class TotalPriceFragment extends BottomSheetDialogFragment {
 
      private static TotalPriceFragment instance;
 
-    public TotalPriceFragment(IBottomSheetDialogOnDismissListener iBottomSheetDialogOnDismissListener) {
-        this.iBottomSheetDialogOnDismissListener = iBottomSheetDialogOnDismissListener;
-    }
+//    public TotalPriceFragment() {
+//        this.iBottomSheetDialogOnDismissListener = iBottomSheetDialogOnDismissListener;
+//    }
 
-    public static TotalPriceFragment getInstance(IBottomSheetDialogOnDismissListener iBottomSheetDialogOnDismissListener) {
-        return instance == null ? new TotalPriceFragment(iBottomSheetDialogOnDismissListener) : instance;
+    public static TotalPriceFragment getInstance() {
+        return instance == null ? new TotalPriceFragment() : instance;
     }
 
     public TotalPriceFragment() {
@@ -163,13 +161,16 @@ public class TotalPriceFragment extends BottomSheetDialogFragment {
             }
         }
 
-        if(shoppingItemList.size() > 0)
+        if(Common.currentBookingInformation.getCartItemList() != null)
         {
-            MyConfirmationShoppingItemAdapter adapter = new MyConfirmationShoppingItemAdapter(getContext(), shoppingItemList);
-            recycler_view_shopping.setAdapter(adapter);
-        }
+            if(Common.currentBookingInformation.getCartItemList().size() > 0)
+            {
+                MyConfirmationShoppingItemAdapter adapter = new MyConfirmationShoppingItemAdapter(getContext(), Common.currentBookingInformation.getCartItemList());
+                recycler_view_shopping.setAdapter(adapter);
+            }
 
-        calculatePrice();
+            calculatePrice();
+        }
     }
 
     private double calculatePrice() {
@@ -177,8 +178,11 @@ public class TotalPriceFragment extends BottomSheetDialogFragment {
         for (BarberServices services: servicesAdded)
             price+=services.getPrice();
 
-        for (ShoppingItem shoppingItem : shoppingItemList)
-            price+=shoppingItem.getPrice();
+        if(Common.currentBookingInformation.getCartItemList() != null)
+        {
+            for (CartItem cartItem: Common.currentBookingInformation.getCartItemList())
+                price+=(cartItem.getProductPrice() * cartItem.getProductQuantity());
+        }
 
         txt_total_price.setText(new StringBuilder(Common.MONEY_SIGN)
         .append(price));
@@ -191,8 +195,8 @@ public class TotalPriceFragment extends BottomSheetDialogFragment {
         this.servicesAdded = new Gson()
                 .fromJson(arguments.getString(Common.SERVICES_ADDED), new TypeToken<HashSet<BarberServices>>(){}.getType());
 
-        this.shoppingItemList = new Gson()
-                .fromJson(arguments.getString(Common.SHOPPING_LIST), new TypeToken<List<ShoppingItem>>(){}.getType());
+//        this.shoppingItemList = new Gson()
+//                .fromJson(arguments.getString(Common.SHOPPING_LIST), new TypeToken<List<ShoppingItem>>(){}.getType());
 
         image_url = arguments.getString(Common.IMAGE_DOWNLOADABLE_URL);
 }
@@ -283,7 +287,7 @@ public class TotalPriceFragment extends BottomSheetDialogFragment {
         invoice.setImageUrl(image_url);
 
         invoice.setBarberServices(new ArrayList<BarberServices>(servicesAdded));
-        invoice.setShoppingItemList(shoppingItemList);
+        invoice.setShoppingItemList(Common.currentBookingInformation.getCartItemList());
         invoice.setFinalPrice(calculatePrice());
 
         invoiceRef.document()
@@ -331,7 +335,6 @@ public class TotalPriceFragment extends BottomSheetDialogFragment {
                             dataSend.put(Common.RATING_BARBER_ID, Common.currentBarber.getBarberId());
 
 
-
                             fcmSendData.setTo(myToken.getToken());
                             fcmSendData.setData(dataSend);
 
@@ -343,7 +346,10 @@ public class TotalPriceFragment extends BottomSheetDialogFragment {
                                         public void accept(FCMResponse fcmResponse) throws Exception {
                                             dialog.dismiss();
                                             dismiss();
-                                            iBottomSheetDialogOnDismissListener.onDismissBttomSheetDialog(true);
+                                            //Here, We just Post Event
+                                            EventBus.getDefault().postSticky(new DismissFromBottomSheetEvent(true));
+//                                            iBottomSheetDialogOnDismissListener.onDismissBttomSheetDialog(true);
+
                                         }
                                     }, new Consumer<Throwable>() {
                                         @Override

@@ -2,12 +2,16 @@ package com.example.androidbarberstaffapp.Model;
 
 import com.google.firebase.Timestamp;
 
+import java.util.List;
+
 public class BookingInformation {
 
     private String bookingId, cityBook, customerName, customerPhone, time, barberId, barberName, salonId, salonName,salonAddress;
     private long slot;
     private Timestamp timestamp;
     private boolean done;
+    private List<CartItem> cartItemList;
+
 
     public BookingInformation() {
     }
@@ -114,5 +118,13 @@ public class BookingInformation {
 
     public void setBookingId(String bookingId) {
         this.bookingId = bookingId;
+    }
+
+    public List<CartItem> getCartItemList() {
+        return cartItemList;
+    }
+
+    public void setCartItemList(List<CartItem> cartItemList) {
+        this.cartItemList = cartItemList;
     }
 }

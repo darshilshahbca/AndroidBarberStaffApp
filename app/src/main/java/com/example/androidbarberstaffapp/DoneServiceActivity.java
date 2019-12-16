@@ -15,7 +15,6 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.StrictMode;
 import android.provider.MediaStore;
-import android.text.Layout;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -28,14 +27,14 @@ import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import com.example.androidbarberstaffapp.Common.Common;
 import com.example.androidbarberstaffapp.Fragments.ShoppingFragment;
 import com.example.androidbarberstaffapp.Fragments.TotalPriceFragment;
 import com.example.androidbarberstaffapp.Interface.IBarberServiceLoadListener;
-import com.example.androidbarberstaffapp.Interface.IBottomSheetDialogOnDismissListener;
 import com.example.androidbarberstaffapp.Interface.IOnShoppingItemSelected;
 import com.example.androidbarberstaffapp.Model.BarberServices;
+import com.example.androidbarberstaffapp.Model.CartItem;
+import com.example.androidbarberstaffapp.Model.EventBus.DismissFromBottomSheetEvent;
 import com.example.androidbarberstaffapp.Model.ShoppingItem;
 import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -51,13 +50,15 @@ import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 import com.google.gson.Gson;
 
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -69,7 +70,7 @@ import butterknife.BindView;
 import butterknife.ButterKnife;
 import dmax.dialog.SpotsDialog;
 
-public class DoneServiceActivity extends AppCompatActivity implements IBarberServiceLoadListener, IOnShoppingItemSelected, IBottomSheetDialogOnDismissListener {
+public class DoneServiceActivity extends AppCompatActivity implements IBarberServiceLoadListener, IOnShoppingItemSelected {
 
     @BindView(R.id.txt_customer_name)
     TextView txt_customer_name;
@@ -107,7 +108,7 @@ public class DoneServiceActivity extends AppCompatActivity implements IBarberSer
 
     HashSet<BarberServices> servicesAdded = new HashSet<>();
 
-    List<ShoppingItem> shoppingItems = new ArrayList<>();
+//    List<ShoppingItem> shoppingItems = new ArrayList<>();
 
     LayoutInflater inflater;
 
@@ -165,10 +166,10 @@ public class DoneServiceActivity extends AppCompatActivity implements IBarberSer
                     dialog.dismiss();
 
                     //Create Total Price Fragment
-                    TotalPriceFragment fragment = TotalPriceFragment.getInstance(DoneServiceActivity.this);
+                    TotalPriceFragment fragment = TotalPriceFragment.getInstance();
                     Bundle bundle = new Bundle();
                     bundle.putString(Common.SERVICES_ADDED, new Gson().toJson(servicesAdded));
-                    bundle.putString(Common.SHOPPING_LIST, new Gson().toJson(shoppingItems));
+//                    bundle.putString(Common.SHOPPING_LIST, new Gson().toJson(shoppingItems));
 
                     fragment.setArguments(bundle);
                     fragment.show(getSupportFragmentManager(), "Price");
@@ -233,10 +234,10 @@ public class DoneServiceActivity extends AppCompatActivity implements IBarberSer
                         dialog.dismiss();
 
                         //Create Total Price Fragment
-                        TotalPriceFragment fragment = TotalPriceFragment.getInstance(DoneServiceActivity.this);
+                        TotalPriceFragment fragment = TotalPriceFragment.getInstance();
                         Bundle bundle = new Bundle();
                         bundle.putString(Common.SERVICES_ADDED, new Gson().toJson(servicesAdded));
-                        bundle.putString(Common.SHOPPING_LIST, new Gson().toJson(shoppingItems));
+//                        bundle.putString(Common.SHOPPING_LIST, new Gson().toJson(shoppingItems));
                         bundle.putString(Common.IMAGE_DOWNLOADABLE_URL, url);
 
                         fragment.setArguments(bundle);
@@ -388,6 +389,7 @@ public class DoneServiceActivity extends AppCompatActivity implements IBarberSer
             }
         });
 
+        loadExtraItems();
         dialog.dismiss();
     }
 
@@ -401,27 +403,86 @@ public class DoneServiceActivity extends AppCompatActivity implements IBarberSer
     public void onShoppingItemSelected(ShoppingItem shoppingItem) {
         //Here, We will create a list to Hold Shopping Item
 
-        shoppingItems.add(shoppingItem);
-        Log.d("ShoppingItem", ""+shoppingItems.size());
+//        shoppingItems.add(shoppingItem);
+//        Log.d("ShoppingItem", ""+shoppingItems.size());
 
-        Chip item = (Chip) inflater.inflate(R.layout.chip_item, null);
-        item.setText(shoppingItem.getName());
-        item.setTag(shoppingItems.indexOf(shoppingItem));
-        edt_services.setText("");
+        //Create New Cart Item
+        CartItem cartItem = new CartItem();
+        cartItem.setProductId(shoppingItem.getId());
+        cartItem.setProductImage(shoppingItem.getImage());
+        cartItem.setProductName(shoppingItem.getName());
+        cartItem.setProductPrice(shoppingItem.getPrice());
+        cartItem.setProductQuantity(1);
+        cartItem.setUserPhone(Common.currentBookingInformation.getCustomerPhone());
 
-        item.setOnCloseIconClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                chip_group_shopping.removeView(view);
-                shoppingItems.remove((int) item.getTag());
+        if(Common.currentBookingInformation.getCartItemList() == null) //If user Submit with Empty
+            Common.currentBookingInformation.setCartItemList(new ArrayList<CartItem>());
+
+        boolean flag = false; //We will use this flag to update cart item quantity increase by 1, IF already have item with same name
+
+        for(int i=0;i<Common.currentBookingInformation.getCartItemList().size();i++)
+        {
+            if(Common.currentBookingInformation.getCartItemList().get(i).getProductName()
+            .equals(shoppingItem.getName())){
+                flag = true; //Enable Flag
+                CartItem itemUpdate = Common.currentBookingInformation.getCartItemList().get(i);
+                itemUpdate.setProductQuantity(itemUpdate.getProductQuantity()+1);
+                Common.currentBookingInformation.getCartItemList().set(i, itemUpdate);
             }
-        });
+        }
 
-        chip_group_shopping.addView(item);
+        if(!flag) //If Flag ==> False, New Item added
+        {
+            Common.currentBookingInformation.getCartItemList().add(cartItem);
+
+            Chip item = (Chip) inflater.inflate(R.layout.chip_item, null);
+            item.setText(cartItem.getProductName());
+            item.setTag(Common.currentBookingInformation.getCartItemList().indexOf(cartItem));
+
+            item.setOnCloseIconClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    chip_group_shopping.removeView(view);
+                    Common.currentBookingInformation.getCartItemList().remove((int)item.getTag());
+                }
+            });
+
+            chip_group_shopping.addView(item);
+        } else {
+            chip_group_shopping.removeAllViews();
+            loadExtraItems();
+        }
 
 
 
 
+
+
+
+    }
+
+    private void loadExtraItems() {
+        if(Common.currentBookingInformation.getCartItemList()!=null)
+        {
+            for(CartItem cartItem : Common.currentBookingInformation.getCartItemList())
+            {
+                Chip item = (Chip) inflater.inflate(R.layout.chip_item, null);
+                item.setText(new StringBuilder(cartItem.getProductName())
+                        .append(" x")
+                        .append(cartItem.getProductQuantity()));
+                item.setTag(Common.currentBookingInformation.getCartItemList().indexOf(cartItem));
+
+                item.setOnCloseIconClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        chip_group_shopping.removeView(view);
+                        Common.currentBookingInformation.getCartItemList().remove((int)item.getTag());
+                    }
+                });
+
+                chip_group_shopping.addView(item);
+            }
+        }
     }
 
     @Override
@@ -485,9 +546,33 @@ public class DoneServiceActivity extends AppCompatActivity implements IBarberSer
         return bitmap.createBitmap(bitmap,0,0,bitmap.getWidth(), bitmap.getHeight(), matrix, true);
     }
 
-    @Override
-    public void onDismissBttomSheetDialog(boolean fromButton) {
-        if(fromButton) //==true
+//    @Override
+//    public void onDismissBttomSheetDialog(boolean fromButton) {
+//        if(fromButton) //==true
+//            finish();
+//    }
+
+
+    //Convert to EVENT Bus
+
+    @Subscribe(sticky = true, threadMode = ThreadMode.MAIN)
+    public void dismissDialog(DismissFromBottomSheetEvent event)
+    {
+        if(event.isButtonClick())
             finish();
     }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        EventBus.getDefault().register(this);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        EventBus.getDefault().unregister(this);
+    }
+
+
 }
